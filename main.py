@@ -2,23 +2,27 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import uuid
 from notification_manager import NotificationManager
+from PIL import Image, ImageDraw
+import pystray
+import threading
 
 
 class ReminderApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Уведомлялка")
-        self.root.geometry("600x500")
+        self.root.geometry("650x550")  # Увеличил размер окна
         
         self.manager = NotificationManager()
         self.manager.load_reminders()
         self.manager.start_background_thread()
         
+        self.tray_icon = None
         self.create_widgets()
         self.refresh_reminder_list()
         
         # Обработка закрытия окна
-        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+        self.root.protocol("WM_DELETE_WINDOW", self.hide_to_tray)
         
     def create_widgets(self):
         # Фрейм для добавления напоминания
@@ -164,10 +168,14 @@ class ReminderApp:
             return
             
         item = self.tree.item(selected[0])
+        display_text = item['values'][0]
+        
+        # Убрать префикс [ВЫКЛ] если есть
+        actual_text = display_text.replace("[ВЫКЛ] ", "")
         
         # Найти reminder_id по тексту
         for reminder in self.manager.reminders:
-            if reminder['text'] == item['values'][0]:
+            if reminder['text'] == actual_text:
                 reminder_id = reminder['id']
                 new_state = not reminder['enabled']
                 self.manager.toggle_reminder(reminder_id, new_state)
@@ -196,13 +204,49 @@ class ReminderApp:
                 times_str += "..."
                 
             self.tree.insert("", "end", values=(text, frequency, reminder_type, times_str))
+    
+    def create_tray_icon(self):
+        """Создать иконку для системного трея"""
+        # Создать простую иконку
+        image = Image.new('RGB', (64, 64), color='blue')
+        draw = ImageDraw.Draw(image)
+        draw.rectangle([16, 16, 48, 48], fill='white')
+        
+        menu = pystray.Menu(
+            pystray.MenuItem("Показать", self.show_from_tray),
+            pystray.MenuItem("Выход", self.quit_app)
+        )
+        
+        self.tray_icon = pystray.Icon("reminder_app", image, "Уведомлялка", menu)
+        
+    def hide_to_tray(self):
+        """Скрыть окно в трей"""
+        self.root.withdraw()
+        if self.tray_icon is None:
+            self.create_tray_icon()
+            # Запустить иконку в отдельном потоке
+            threading.Thread(target=self.tray_icon.run, daemon=True).start()
             
-    def on_closing(self):
+    def show_from_tray(self, icon=None, item=None):
+        """Показать окно из трея"""
+        self.root.deiconify()
+        self.root.lift()
+        self.root.focus_force()
+        
+    def quit_app(self, icon=None, item=None):
+        """Полностью закрыть приложение"""
+        if self.tray_icon:
+            self.tray_icon.stop()
         self.manager.stop()
-        self.root.destroy()
+        self.root.quit()
+        
+    def on_closing(self):
+        """Старый метод для полного закрытия (на всякий случай)"""
+        self.quit_app()
 
 
 if __name__ == "__main__":
     root = tk.Tk()
     app = ReminderApp(root)
     root.mainloop()
+
