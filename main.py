@@ -147,14 +147,8 @@ class ReminderApp:
             messagebox.showwarning("Внимание", "Выберите напоминание для удаления!")
             return
             
-        item = self.tree.item(selected[0])
-        reminder_id = item['values'][0] if item['values'] else None
-        
-        # Найти reminder_id по тексту (так как мы не отображаем ID)
-        for reminder in self.manager.reminders:
-            if reminder['text'] == item['values'][0]:
-                reminder_id = reminder['id']
-                break
+        # ID напоминания хранится в iid элемента Treeview
+        reminder_id = selected[0]
                 
         if reminder_id:
             self.manager.remove_reminder(reminder_id)
@@ -167,16 +161,12 @@ class ReminderApp:
             messagebox.showwarning("Внимание", "Выберите напоминание!")
             return
             
-        item = self.tree.item(selected[0])
-        display_text = item['values'][0]
+        # ID напоминания хранится в iid элемента Treeview
+        reminder_id = selected[0]
         
-        # Убрать префикс [ВЫКЛ] если есть
-        actual_text = display_text.replace("[ВЫКЛ] ", "")
-        
-        # Найти reminder_id по тексту
+        # Найти напоминание
         for reminder in self.manager.reminders:
-            if reminder['text'] == actual_text:
-                reminder_id = reminder['id']
+            if reminder['id'] == reminder_id:
                 new_state = not reminder['enabled']
                 self.manager.toggle_reminder(reminder_id, new_state)
                 self.refresh_reminder_list()
@@ -203,7 +193,8 @@ class ReminderApp:
             if len(times) > 3:
                 times_str += "..."
                 
-            self.tree.insert("", "end", values=(text, frequency, reminder_type, times_str))
+            # Используем ID напоминания как iid элемента
+            self.tree.insert("", "end", iid=reminder['id'], values=(text, frequency, reminder_type, times_str))
     
     def create_tray_icon(self):
         """Создать иконку для системного трея"""
