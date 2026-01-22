@@ -103,6 +103,8 @@ class NotificationManager:
         current_hour = now.hour
         current_minute = now.minute
         
+        print(f"[DEBUG] Проверка времени: {current_hour:02d}:{current_minute:02d}")
+        
         for reminder in self.reminders:
             if not reminder['enabled']:
                 continue
@@ -112,9 +114,11 @@ class NotificationManager:
                 self._schedule_reminder(reminder)
                 
             times = self.scheduled_times[reminder_id]
+            print(f"[DEBUG] Напоминание '{reminder['text'][:30]}...' - запланировано: {times}")
             
             for scheduled_hour, scheduled_minute in times:
                 if scheduled_hour == current_hour and scheduled_minute == current_minute:
+                    print(f"[DEBUG] ✅ Отправка уведомления: {reminder['text']}")
                     self._send_notification(reminder['text'])
                     
         # Пересчитать расписание в начале нового дня

@@ -101,6 +101,7 @@ class ReminderApp:
         ttk.Button(button_frame, text="🗑️ Удалить", command=self.delete_reminder).pack(side="left", padx=5)
         ttk.Button(button_frame, text="⏸️ Выкл/Вкл", command=self.toggle_reminder).pack(side="left", padx=5)
         ttk.Button(button_frame, text="🔄 Обновить", command=self.refresh_reminder_list).pack(side="left", padx=5)
+        ttk.Button(button_frame, text="🔔 Тест уведомления", command=self.test_notification).pack(side="left", padx=5)
         
     def add_reminder(self):
         text = self.text_entry.get().strip()
@@ -173,6 +174,26 @@ class ReminderApp:
                 status = "включено" if new_state else "выключено"
                 messagebox.showinfo("Успех", f"Напоминание {status}!")
                 break
+    
+    def test_notification(self):
+        """Тестовая отправка уведомления"""
+        selected = self.tree.selection()
+        if not selected:
+            # Отправить тестовое уведомление
+            self.manager._send_notification("Тестовое уведомление! Если вы видите это, уведомления работают ✅")
+            messagebox.showinfo("Тест", "Тестовое уведомление отправлено! Проверьте правый нижний угол.")
+        else:
+            # Отправить уведомление выбранного напоминания
+            reminder_id = selected[0]
+            for reminder in self.manager.reminders:
+                if reminder['id'] == reminder_id:
+                    self.manager._send_notification(reminder['text'])
+                    # Показать запланированные времена
+                    times = self.manager.get_next_notification_times(reminder_id)
+                    times_info = "\n".join(times) if times else "Нет запланированных времен"
+                    messagebox.showinfo("Тест", f"Уведомление отправлено!\n\nЗапланированные времена:\n{times_info}")
+                    break
+                
                 
     def refresh_reminder_list(self):
         # Очистить список
